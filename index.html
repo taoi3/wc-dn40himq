@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex,nofollow,noarchive">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="病棟チェック">
+<meta name="theme-color" content="#0f766e">
+<title>病棟勤務チェックシート</title>
+<style>
+  :root{
+    --bg:#f3f4f6; --card:#ffffff; --ink:#1f2937; --sub:#6b7280; --line:#e5e7eb;
+    --accent:#0f766e; --accent-soft:#ccfbf1; --plan:#f59e0b; --plan-soft:#fef3c7;
+    --done:#16a34a; --done-soft:#dcfce7; --sel:#2563eb; --sel-soft:#dbeafe;
+    --warn:#b91c1c; --warn-soft:#fee2e2; --radius:14px;
+  }
+  html[data-theme="dark"]{
+    --bg:#0b1220; --card:#161e2e; --ink:#e5e7eb; --sub:#9aa4b2; --line:#26324a;
+    --accent:#2dd4bf; --accent-soft:#0f3b36; --plan:#fbbf24; --plan-soft:#3a2f10;
+    --done:#4ade80; --done-soft:#0f3320; --sel:#60a5fa; --sel-soft:#13243f;
+    --warn:#f87171; --warn-soft:#3a1414;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:16px; line-height:1.5;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  /* ---- ヘッダー ---- */
+  header{
+    position:sticky; top:0; z-index:30; background:var(--accent); color:#fff;
+    padding:calc(env(safe-area-inset-top) + 10px) 14px 0;
+  }
+  .h-title{font-size:17px; font-weight:700; display:flex; align-items:center; gap:8px; padding-bottom:8px;}
+  .theme-btn{
+    margin-left:auto; border:1px solid rgba(255,255,255,.5); background:rgba(255,255,255,.16);
+    color:#fff; border-radius:999px; padding:5px 11px; font-size:12.5px; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+  }
+  .h-meta{display:flex; gap:8px; padding-bottom:10px; flex-wrap:wrap;}
+  .h-meta label{font-size:12px; opacity:.85; display:flex; flex-direction:column; gap:2px;}
+  .h-meta input{
+    border:none; border-radius:8px; padding:6px 8px; font-size:14px;
+    background:rgba(255,255,255,.92); color:#111; min-width:96px;
+  }
+  .tabs{display:flex; gap:6px;}
+  .tab{
+    flex:1; text-align:center; padding:11px 4px; font-size:15px; font-weight:700;
+    background:rgba(255,255,255,.16); color:#fff; border:none; border-radius:10px 10px 0 0;
+    cursor:pointer;
+  }
+  .tab.active{background:var(--bg); color:var(--accent);}
+  /* ---- 注意バナー ---- */
+  .notice{
+    background:var(--warn-soft); color:var(--warn); font-size:12.5px; line-height:1.45;
+    padding:9px 14px; border-bottom:1px solid var(--line);
+  }
+  .notice b{font-weight:700;}
+  /* ---- レイアウト ---- */
+  main{padding:12px 12px 120px;}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+  .btn{
+    border:1px solid var(--line); background:var(--card); color:var(--ink);
+    border-radius:10px; padding:9px 13px; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .btn.ghost{background:transparent;}
+  .legend{
+    display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--sub);
+    margin-bottom:12px; align-items:center;
+  }
+  .legend .chip{padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600;}
+  /* ---- 患者カード ---- */
+  .pcard{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    margin-bottom:12px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .pcard.prio-高{border-left:5px solid var(--warn);}
+  .pcard.prio-中{border-left:5px solid var(--plan);}
+  .pcard.prio-低{border-left:5px solid var(--done);}
+  .phead{
+    display:flex; align-items:center; gap:10px; padding:13px 14px; cursor:pointer; user-select:none;
+  }
+  .pno{
+    flex:none; width:30px; height:30px; border-radius:8px; background:var(--accent-soft);
+    color:var(--accent); font-weight:700; display:flex; align-items:center; justify-content:center; font-size:15px;
+  }
+  .pname{flex:1; min-width:0;}
+  .pname .nm{font-size:16px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pname .meta{font-size:12px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pbadges{display:flex; gap:5px; align-items:center; flex:none;}
+  .badge{font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; white-space:nowrap;}
+  .badge.prio-高{background:var(--warn-soft); color:var(--warn);}
+  .badge.prio-中{background:var(--plan-soft); color:var(--plan);}
+  .badge.prio-低{background:var(--done-soft); color:var(--done);}
+  .badge.prog{background:var(--accent-soft); color:var(--accent);}
+  .chev{flex:none; color:var(--sub); transition:transform .2s; font-size:13px;}
+  .pcard.open .chev{transform:rotate(90deg);}
+  .pbody{display:none; padding:0 14px 14px; border-top:1px solid var(--line);}
+  .pcard.open .pbody{display:block;}
+  /* ---- セクション ---- */
+  .sec{margin-top:14px;}
+  .sec-h{font-size:13px; font-weight:700; color:var(--accent); margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+  .sec-h::before{content:""; width:4px; height:14px; background:var(--accent); border-radius:2px;}
+  .fgrid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .fgrid.one{grid-template-columns:1fr;}
+  .field{display:flex; flex-direction:column; gap:3px;}
+  .field.full{grid-column:1 / -1;}
+  .field > span{font-size:11.5px; color:var(--sub); font-weight:600;}
+  .field input, .field textarea{
+    border:1px solid var(--line); border-radius:9px; padding:9px 10px; font-size:15px;
+    background:var(--bg); color:var(--ink); font-family:inherit; width:100%;
+  }
+  .field textarea{resize:vertical; min-height:42px; line-height:1.4;}
+  /* ---- チップ ---- */
+  .chips{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip-btn{
+    border:1.5px solid var(--line); background:var(--card); color:var(--ink);
+    border-radius:999px; padding:8px 13px; font-size:14px; font-weight:600; cursor:pointer;
+    display:inline-flex; align-items:center; gap:5px; min-height:38px;
+  }
+  .chip-btn .mk{font-size:13px; opacity:.7;}
+  /* 選択系 */
+  .chip-btn.sel{background:var(--sel-soft); border-color:var(--sel); color:var(--sel);}
+  /* 3段タスク: 予定 */
+  .chip-btn.plan{background:var(--plan-soft); border-color:var(--plan); color:#92600a;}
+  /* 3段タスク: 済 */
+  .chip-btn.done{background:var(--done-soft); border-color:var(--done); color:#15803d; text-decoration:line-through; text-decoration-thickness:2px;}
+  html[data-theme="dark"] .chip-btn.plan{color:var(--plan);}
+  html[data-theme="dark"] .chip-btn.done{color:var(--done);}
+  /* ---- 経時観察テーブル ---- */
+  .timewrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:10px;}
+  table.tt{border-collapse:collapse; width:max-content; min-width:100%; font-size:13px;}
+  table.tt th, table.tt td{border:1px solid var(--line); padding:0;}
+  table.tt thead th{background:var(--bg); position:sticky; top:0; padding:6px 6px; font-size:12px; white-space:nowrap;}
+  table.tt th.catcol, table.tt td.itemcol{
+    position:sticky; left:0; background:var(--card); z-index:2; text-align:left;
+    padding:7px 9px; min-width:160px; max-width:200px; font-weight:600; font-size:12.5px;
+  }
+  table.tt thead th.itemcol{z-index:3; background:var(--bg);}
+  .catrow td{background:var(--accent-soft); color:var(--accent); font-weight:700; padding:6px 9px; font-size:12.5px;}
+  .tcell{width:42px; height:40px; text-align:center; cursor:pointer; font-size:15px; color:var(--sub);}
+  .tcell.on{background:var(--done-soft); color:var(--done); font-weight:700;}
+  .timehead input{width:46px; border:none; background:transparent; text-align:center; font-size:12px; color:var(--ink); padding:2px 0;}
+  .noteinput{width:150px; border:none; background:transparent; font-size:13px; padding:6px; color:var(--ink); font-family:inherit;}
+  /* ---- チェックリスト(術後) ---- */
+  .clist{display:flex; flex-direction:column; gap:7px;}
+  .crow{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--line);
+    border-radius:10px; background:var(--card); cursor:pointer; font-size:14.5px; font-weight:500;
+  }
+  .crow .box{flex:none; width:24px; height:24px; border:2px solid var(--sub); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff;}
+  .crow.on{background:var(--done-soft); border-color:var(--done);}
+  .crow.on .box{background:var(--done); border-color:var(--done);}
+  .crow.on span{text-decoration:line-through; color:var(--sub);}
+  /* ---- 異常時記録 ---- */
+  .abn{border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px; background:var(--bg);}
+  .abn .row{display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:7px;}
+  .abn input, .abn textarea{width:100%; border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:14px; background:var(--card); color:var(--ink); font-family:inherit;}
+  .del-x{background:none; border:none; color:var(--warn); font-size:13px; font-weight:600; cursor:pointer; padding:4px;}
+  .ref{font-size:11.5px; color:var(--sub); margin-top:14px; line-height:1.5; word-break:break-all;}
+  .ref a{color:var(--accent);}
+  .addrow{margin-top:8px;}
+  .empty{text-align:center; color:var(--sub); font-size:14px; padding:40px 10px;}
+  .toast{
+    position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+    background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px; font-size:14px;
+    font-weight:600; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50;
+  }
+  .toast.show{opacity:.95;}
+  hr.sp{border:none; border-top:1px dashed var(--line); margin:16px 0 4px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="h-title">🩺 病棟勤務チェックシート
+    <button id="themeBtn" class="theme-btn" type="button">☀️ ライト</button>
+  </div>
+  <div class="h-meta">
+    <label>日付<input type="date" id="hDate"></label>
+    <label>担当者<input type="text" id="hStaff" placeholder="氏名" autocomplete="off"></label>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="day">日勤</button>
+    <button class="tab" data-tab="night">夜勤</button>
+    <button class="tab" data-tab="postop">術後</button>
+  </div>
+</header>
+
+<div class="notice">
+  <b>安全管理:</b> 患者情報は院内ルールに従ってください。このアプリの入力内容は<b>この端末の中だけ</b>に保存され、ネットには一切送信されません。院内の規定で私物端末への患者氏名等の入力が禁止の場合は、<b>病室番号やイニシャル</b>でご利用ください。臨床判断は医師指示・院内基準・クリニカルパスを優先してください。
+</div>
+
+<main id="main"></main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   病棟勤務チェックシート  —  単一ファイル / オフライン / 端末内保存
+   ============================================================ */
+
+const STORE_KEY = "byoutou_check_v1";
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+
+/* ---------- スキーマ定義 ---------- */
+// チップ種別: single(単一選択) / multi(複数選択) / tri(未→予定→済)
+const OBS = ["疼痛","発熱","SpO₂","血圧","意識","転倒","誤嚥","せん妄"];
+const HAISETSU = ["自立","車椅子トイレ","オムツ(テープ式)","リハビリパンツ","Ba"];
+const SEIKETSU = ["機械浴","シャワー","清拭","陰洗","なし"];
+
+function todoSections(shift){
+  const meal = shift==="day"
+    ? [{id:"昼主",label:"昼 主食",type:"text"},{id:"昼副",label:"昼 副食",type:"text"}]
+    : [{id:"夕主",label:"夕 主食",type:"text"},{id:"夕副",label:"夕 副食",type:"text"},
+       {id:"朝主",label:"朝 主食",type:"text"},{id:"朝副",label:"朝 副食",type:"text"}];
+  return [
+    {title:"基本情報", fields:[
+      {id:"name",label:"患者名",type:"text",full:false},
+      {id:"age",label:"年齢",type:"text"},
+      {id:"sex",label:"性別",type:"single",opts:["男","女"]},
+      {id:"prio",label:"優先度",type:"single",opts:["高","中","低"],prio:true},
+      {id:"dx",label:"病名",type:"text",full:true},
+      {id:"dnar",label:"DNAR",type:"single",opts:["DNAR","フルコース","未定"],full:true},
+      {id:"care",label:"介護度",type:"text"},
+      {id:"comment",label:"患者コメント",type:"textarea",full:true},
+    ]},
+    {title:"内服", type:"chips", chip:"tri", opts:["朝","昼","夕","寝る前"]},
+    {title:"注射 (内容・時間)", type:"rows", rows:4},
+    {title:"処置", type:"chips", chip:"tri", opts:["創処置","褥瘡処置","その他"],
+     extra:{id:"shochiOther",label:"その他の内容",type:"text"}},
+    {title:"観察ポイント", type:"chips", chip:"multi", opts:OBS},
+    {title:"排泄", type:"chips", chip:"multi", opts:HAISETSU},
+    {title:"清潔", type:"chips", chip:"multi", opts:SEIKETSU},
+    {title:"食事量", type:"fields", fields:meal},
+    {title:"検査", type:"rows", rows:3},
+    {title:"評価日・必要度", type:"fields", fields:[
+      {id:"need",label:"必要度",type:"text"},
+      {id:"plan_d",label:"看護計画 更新日",type:"text"},
+      {id:"fall_d",label:"転倒 評価日",type:"text"},
+      {id:"joku_d",label:"褥瘡 評価日",type:"text"},
+      {id:"yoku_d",label:"抑制 評価日",type:"text"},
+    ]},
+  ];
+}
+
+const POST_HANDOFF = ["本人確認","術式・手術部位","麻酔法","術中出血量・輸血","酸素・モニター指示",
+  "点滴・抗菌薬","鎮痛薬・制吐薬指示","創部・ドレーン・チューブ","安静度・体位",
+  "飲水・食事開始","採血・検査・診察予定","注意すべき合併症","家族への説明・連絡"];
+
+const POST_TODO = ["術後指示確認","酸素・モニター開始","点滴・輸液速度確認","抗菌薬","鎮痛薬・制吐薬",
+  "採血","画像検査","血糖・インスリン","創部確認","ドレーン測定","尿量・初回排尿",
+  "飲水・食事開始","初回離床","内服再開","医師診察","家族連絡","翌勤務への申し送り"];
+
+const POST_OBS = [
+  {cat:"意識・神経", items:["JCS／GCS・覚醒状態","傾眠・不穏・せん妄","瞳孔／下肢運動・感覚・しびれ"]},
+  {cat:"呼吸", items:["呼吸数(回/分)","SpO₂(%)","酸素：方法・流量(L/分)","気道・呼吸音・努力呼吸・痰"]},
+  {cat:"循環", items:["血圧(mmHg)","脈拍(回/分)・不整脈","体温(℃)","顔色・冷汗・末梢冷感"]},
+  {cat:"疼痛・PONV", items:["疼痛 NRS(0〜10)・部位","鎮痛薬：時刻・薬剤・効果・眠気","悪心・嘔吐／制吐薬"]},
+  {cat:"創部・排液", items:["創部：出血・腫脹・血腫・ドレッシング","ドレーン①：量・色・性状・吸引","ドレーン②：量・色・性状・吸引"]},
+  {cat:"点滴・排泄", items:["点滴：内容・速度・残量・刺入部","尿：Ba／自尿・尿量・色・初回排尿"]},
+  {cat:"消化器・活動", items:["腹部：膨満・腸蠕動・排ガス","飲水・食事：開始・摂取量・嚥下","安静度・初回離床・ふらつき・転倒"]},
+  {cat:"その他", items:["チューブ・ストーマ・術式別観察"]},
+];
+const POST_TIMES = ["帰室時","①","②","③","④","⑤","⑥","⑦"];
+
+/* ---------- 状態 ---------- */
+let state = load() || {
+  date:"", staff:"", activeTab:"day",
+  day:[], night:[], postop:[]
+};
+function blankTodo(){ return {open:true, data:{}}; }
+function blankPost(){ return {open:true, data:{}, abn:[]}; }
+
+function ensureCounts(){
+  while(state.day.length < 7) state.day.push(blankTodo());
+  while(state.night.length < 13) state.night.push(blankTodo());
+  if(state.postop.length === 0) state.postop.push(blankPost());
+}
+ensureCounts();
+
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)); }catch(e){ return null; } }
+
+let toastT;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1400);
+}
+
+/* ---------- テーマ ---------- */
+function applyTheme(){
+  const t = state.theme || "light";
+  document.documentElement.setAttribute("data-theme", t);
+  const btn = $("#themeBtn");
+  if(btn) btn.textContent = (t==="dark") ? "🌙 ダーク" : "☀️ ライト";
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute("content", t==="dark" ? "#0b1220" : "#0f766e");
+}
+if(!state.theme) state.theme = "light";
+applyTheme();
+$("#themeBtn").addEventListener("click",()=>{
+  state.theme = (state.theme==="dark") ? "light" : "dark";
+  save(); applyTheme();
+});
+
+/* ---------- ヘッダー ---------- */
+$("#hDate").value = state.date;
+$("#hStaff").value = state.staff;
+$("#hDate").addEventListener("change",e=>{state.date=e.target.value; save();});
+$("#hStaff").addEventListener("input",e=>{state.staff=e.target.value; save();});
+$$(".tab").forEach(b=>b.addEventListener("click",()=>{
+  state.activeTab=b.dataset.tab; save();
+  $$(".tab").forEach(x=>x.classList.toggle("active",x===b));
+  render();
+}));
+
+/* ---------- 描画 ---------- */
+function render(){
+  const main=$("#main");
+  main.innerHTML="";
+  const tab=state.activeTab;
+
+  const tools=document.createElement("div");
+  tools.className="toolbar";
+  if(tab==="postop"){
+    tools.innerHTML=`<button class="btn primary" id="addP">＋ 術後患者を追加</button>
+      <button class="btn ghost" id="prn">🖨 印刷</button>`;
+  }else{
+    const n = state[tab].length;
+    tools.innerHTML=`<button class="btn primary" id="addP">＋ 患者を追加</button>
+      <button class="btn" id="collapse">すべて閉じる</button>
+      <button class="btn ghost" id="prn">🖨 印刷</button>
+      <span style="align-self:center;color:var(--sub);font-size:13px;">${tab==="day"?"日勤":"夜勤"} ${n}名</span>`;
+  }
+  main.appendChild(tools);
+
+  // 凡例
+  const lg=document.createElement("div");
+  lg.className="legend";
+  lg.innerHTML=`タップで切替 →
+    <span class="chip" style="border:1.5px solid var(--line);">未</span>
+    <span class="chip" style="background:var(--plan-soft);color:#92600a;border:1.5px solid var(--plan);">予定</span>
+    <span class="chip" style="background:var(--done-soft);color:#15803d;border:1.5px solid var(--done);text-decoration:line-through;">済</span>`;
+  main.appendChild(lg);
+
+  if(tab==="postop"){
+    state.postop.forEach((p,i)=>main.appendChild(renderPost(p,i)));
+  }else{
+    state[tab].forEach((p,i)=>main.appendChild(renderTodo(tab,p,i)));
+  }
+
+  // ツールバー操作
+  $("#addP")?.addEventListener("click",()=>{
+    if(tab==="postop") state.postop.push(blankPost());
+    else state[tab].push(blankTodo());
+    save(); render(); window.scrollTo(0,document.body.scrollHeight);
+  });
+  $("#collapse")?.addEventListener("click",()=>{
+    state[tab].forEach(p=>p.open=false); save(); render();
+  });
+  $("#prn")?.addEventListener("click",()=>window.print());
+}
+
+/* ----- ToDoカード(日勤/夜勤) ----- */
+function renderTodo(tab,p,idx){
+  const card=document.createElement("div");
+  const prio=p.data.prio||"";
+  card.className="pcard"+(p.open?" open":"")+(prio?" prio-"+prio:"");
+
+  // 進捗(内服+処置の済数)
+  const prog = countDone(p,"内服")+countDone(p,"処置");
+
+  const head=document.createElement("div");
+  head.className="phead";
+  head.innerHTML=`
+    <div class="pno">${idx+1}</div>
+    <div class="pname">
+      <div class="nm">${esc(p.data.name)||'（患者名未入力）'}</div>
+      <div class="meta">${[p.data.age&&p.data.age+'歳',p.data.sex,p.data.dx].filter(Boolean).map(esc).join(' / ')||'タップして入力'}</div>
+    </div>
+    <div class="pbadges">
+      ${prog?`<span class="badge prog">済 ${prog}</span>`:''}
+      ${prio?`<span class="badge prio-${prio}">${prio}</span>`:''}
+      <span class="chev">▶</span>
+    </div>`;
+  head.addEventListener("click",()=>{p.open=!p.open; save(); render();});
+  card.appendChild(head);
+
+  const body=document.createElement("div");
+  body.className="pbody";
+  todoSections(tab).forEach(sec=>body.appendChild(renderSection(p,sec)));
+
+  // 削除
+  const del=document.createElement("div");
+  del.style.cssText="margin-top:16px;text-align:right;";
+  del.innerHTML=`<button class="btn ghost" style="color:var(--warn);border-color:var(--warn);">この患者を削除</button>`;
+  del.firstElementChild.addEventListener("click",()=>{
+    if(confirm("この患者欄を削除しますか？")){ state[tab].splice(idx,1); save(); render(); }
+  });
+  body.appendChild(del);
+
+  card.appendChild(body);
+  return card;
+}
+
+function renderSection(p,sec){
+  const wrap=document.createElement("div");
+  wrap.className="sec";
+  if(sec.title){
+    const h=document.createElement("div"); h.className="sec-h"; h.textContent=sec.title; wrap.appendChild(h);
+  }
+  if(sec.fields && (sec.title==="基本情報"||sec.type==="fields")){
+    const g=document.createElement("div"); g.className="fgrid";
+    sec.fields.forEach(f=>g.appendChild(renderField(p,f)));
+    wrap.appendChild(g);
+  } else if(sec.type==="chips"){
+    wrap.appendChild(renderChips(p,sec));
+    if(sec.extra){
+      const g=document.createElement("div"); g.className="fgrid one"; g.style.marginTop="8px";
+      g.appendChild(renderField(p,sec.extra)); wrap.appendChild(g);
+    }
+  } else if(sec.type==="rows"){
+    const g=document.createElement("div"); g.className="fgrid one";
+    for(let i=1;i<=sec.rows;i++){
+      g.appendChild(renderField(p,{id:sec.title+"_r"+i,label:i+":",type:"text"}));
+    }
+    wrap.appendChild(g);
+  }
+  return wrap;
+}
+
+function renderField(p,f){
+  const w=document.createElement("label");
+  w.className="field"+((f.full)?" full":"");
+  const s=document.createElement("span"); s.textContent=f.label; w.appendChild(s);
+  if(f.type==="single"){
+    w.classList.remove("field"); // wrap differently
+    const box=document.createElement("div"); box.className="field"+(f.full?" full":"");
+    const sp=document.createElement("span"); sp.textContent=f.label; box.appendChild(sp);
+    const chips=document.createElement("div"); chips.className="chips";
+    f.opts.forEach(o=>{
+      const b=document.createElement("button"); b.className="chip-btn"+(p.data[f.id]===o?" sel":"");
+      b.textContent=o;
+      b.addEventListener("click",()=>{
+        p.data[f.id]= (p.data[f.id]===o)?"":o; save(); render();
+      });
+      chips.appendChild(b);
+    });
+    box.appendChild(chips);
+    return box;
+  }
+  let inp;
+  if(f.type==="textarea"){ inp=document.createElement("textarea"); }
+  else { inp=document.createElement("input"); inp.type="text"; }
+  inp.value=p.data[f.id]||"";
+  inp.addEventListener("input",e=>{p.data[f.id]=e.target.value; save();});
+  inp.addEventListener("blur",()=>{ if(f.id==="name"||f.id==="age"||f.id==="sex"||f.id==="dx") render(); });
+  w.appendChild(inp);
+  return w;
+}
+
+function renderChips(p,sec){
+  const chips=document.createElement("div"); chips.className="chips";
+  const store = p.data[sec.title] || (p.data[sec.title]={});
+  sec.opts.forEach(o=>{
+    const b=document.createElement("button"); b.className="chip-btn";
+    const st=store[o]||0;
+    let mark="";
+    if(sec.chip==="tri"){
+      if(st===1){ b.classList.add("plan"); mark="○"; }
+      else if(st===2){ b.classList.add("done"); mark="☑"; }
+    } else { // multi
+      if(st){ b.classList.add("sel"); mark="✓"; }
+    }
+    b.innerHTML = (mark?`<span class="mk">${mark}</span>`:"")+esc(o);
+    b.addEventListener("click",()=>{
+      if(sec.chip==="tri") store[o]=((store[o]||0)+1)%3;
+      else store[o]=store[o]?0:1;
+      save(); render();
+    });
+    chips.appendChild(b);
+  });
+  return chips;
+}
+
+function countDone(p,title){
+  const s=p.data[title]; if(!s) return 0;
+  return Object.values(s).filter(v=>v===2).length;
+}
+
+/* ----- 術後カード ----- */
+function renderPost(p,idx){
+  const card=document.createElement("div");
+  card.className="pcard"+(p.open?" open":"");
+  const head=document.createElement("div");
+  head.className="phead";
+  head.innerHTML=`
+    <div class="pno">術</div>
+    <div class="pname">
+      <div class="nm">${esc(p.data.name)||'（術後患者 '+(idx+1)+'）'}</div>
+      <div class="meta">${[p.data.pod&&'POD '+esc(p.data.pod),p.data.room&&'病室'+esc(p.data.room),esc(p.data.opname)].filter(Boolean).join(' / ')||'タップして入力'}</div>
+    </div>
+    <div class="pbadges"><span class="chev">▶</span></div>`;
+  head.addEventListener("click",()=>{p.open=!p.open; save(); render();});
+  card.appendChild(head);
+
+  const body=document.createElement("div");
+  body.className="pbody";
+
+  // 基本情報
+  body.appendChild(secWrap("基本情報", gridFields(p,[
+    {id:"shift",label:"勤務",type:"single",opts:["日勤","夜勤"]},
+    {id:"pod",label:"術後日 POD",type:"text"},
+    {id:"room",label:"病室",type:"text"},
+    {id:"back",label:"帰室時刻",type:"text"},
+    {id:"name",label:"患者名",type:"text",full:true,render:true},
+    {id:"age",label:"年齢",type:"text"},
+    {id:"sex",label:"性別",type:"single",opts:["男","女"]},
+    {id:"dnar",label:"DNAR",type:"single",opts:["DNAR","フルコース","未定"],full:true},
+    {id:"allergy",label:"アレルギー",type:"text",full:true},
+    {id:"dx",label:"病名",type:"text",full:true,render:true},
+    {id:"opname",label:"術式",type:"text",full:true,render:true},
+    {id:"opdate",label:"手術日",type:"text"},
+    {id:"anes",label:"麻酔法",type:"multi2",opts:["全身","脊椎","硬膜外","局所","その他"],full:true},
+    {id:"o2",label:"酸素指示",type:"text",full:true},
+    {id:"rest",label:"安静度",type:"text"},
+    {id:"diet",label:"飲水・食事",type:"text"},
+    {id:"order",label:"術後指示・注意事項",type:"textarea",full:true},
+  ])));
+
+  // 注意書き
+  const note=document.createElement("div");
+  note.style.cssText="font-size:12px;color:var(--warn);background:var(--warn-soft);padding:8px 10px;border-radius:8px;margin-top:12px;line-height:1.45;";
+  note.textContent="※ 観察間隔・報告基準・離床・飲水食事開始は、医師指示・院内基準・術式別クリニカルパスを最優先してください。";
+  body.appendChild(note);
+
+  // 帰室時・引継ぎ確認
+  body.appendChild(secWrap("帰室時・引継ぎ確認", checkList(p,"handoff",POST_HANDOFF)));
+
+  // 経時観察
+  const obsSec=secWrap("経時観察", postObsTable(p));
+  body.appendChild(obsSec);
+
+  // 術後当日 ToDoチェック
+  body.appendChild(secWrap("術後当日 ToDoチェック", checkList(p,"todo",POST_TODO)));
+
+  // 異常時の報告・指示・再評価
+  body.appendChild(secWrap("異常時の報告・指示・再評価", abnBlock(p,idx)));
+
+  // 参考
+  const ref=document.createElement("div");
+  ref.className="ref";
+  ref.innerHTML=`参考(項目設計)：日本麻酔科学会 指針・ガイドライン
+    <a href="https://anesth.or.jp/users/person/guide_line" target="_blank" rel="noopener">anesth.or.jp</a>
+    ／ ASA Standards for Postanesthesia Care
+    <a href="https://www.asahq.org/standards-and-practice-parameters/standards-for-postanesthesia-care" target="_blank" rel="noopener">asahq.org</a>`;
+  body.appendChild(ref);
+
+  // 削除
+  const del=document.createElement("div");
+  del.style.cssText="margin-top:14px;text-align:right;";
+  del.innerHTML=`<button class="btn ghost" style="color:var(--warn);border-color:var(--warn);">この術後患者を削除</button>`;
+  del.firstElementChild.addEventListener("click",()=>{
+    if(confirm("この術後患者欄を削除しますか？")){ state.postop.splice(idx,1); if(state.postop.length===0) state.postop.push(blankPost()); save(); render(); }
+  });
+  body.appendChild(del);
+
+  card.appendChild(body);
+  return card;
+}
+
+function secWrap(title,node){
+  const w=document.createElement("div"); w.className="sec";
+  const h=document.createElement("div"); h.className="sec-h"; h.textContent=title; w.appendChild(h);
+  w.appendChild(node); return w;
+}
+
+function gridFields(p,fields){
+  const g=document.createElement("div"); g.className="fgrid";
+  fields.forEach(f=>{
+    if(f.type==="multi2"){
+      const box=document.createElement("div"); box.className="field full";
+      const sp=document.createElement("span"); sp.textContent=f.label; box.appendChild(sp);
+      const chips=document.createElement("div"); chips.className="chips";
+      const store=p.data[f.id]||(p.data[f.id]={});
+      f.opts.forEach(o=>{
+        const b=document.createElement("button"); b.className="chip-btn"+(store[o]?" sel":"");
+        b.textContent=o;
+        b.addEventListener("click",()=>{store[o]=store[o]?0:1; save(); render();});
+        chips.appendChild(b);
+      });
+      box.appendChild(chips); g.appendChild(box);
+    } else {
+      const f2=Object.assign({},f);
+      const node=renderField(p,f2);
+      g.appendChild(node);
+    }
+  });
+  return g;
+}
+
+function checkList(p,key,items){
+  const store=p.data[key]||(p.data[key]={});
+  const list=document.createElement("div"); list.className="clist";
+  items.forEach(it=>{
+    const row=document.createElement("div"); row.className="crow"+(store[it]?" on":"");
+    row.innerHTML=`<div class="box">${store[it]?"✓":""}</div><span>${esc(it)}</span>`;
+    row.addEventListener("click",()=>{store[it]=store[it]?0:1; save(); render();});
+    list.appendChild(row);
+  });
+  return list;
+}
+
+function postObsTable(p){
+  const times=p.data.obsTimes||(p.data.obsTimes={});
+  const obs=p.data.obs||(p.data.obs={});
+  const wrap=document.createElement("div"); wrap.className="timewrap";
+  const tbl=document.createElement("table"); tbl.className="tt";
+
+  // ヘッダー
+  const thead=document.createElement("thead");
+  let htr="<tr><th class='itemcol'>観察項目</th>";
+  POST_TIMES.forEach((t,ti)=>{
+    htr+=`<th class="timehead">${t}<br><input data-ti="${ti}" placeholder=":" value="${esc(times[ti]||'')}"></th>`;
+  });
+  htr+="<th>備考</th></tr>";
+  thead.innerHTML=htr; tbl.appendChild(thead);
+
+  const tbody=document.createElement("tbody");
+  POST_OBS.forEach(group=>{
+    const ctr=document.createElement("tr"); ctr.className="catrow";
+    ctr.innerHTML=`<td colspan="${POST_TIMES.length+2}">${group.cat}</td>`;
+    tbody.appendChild(ctr);
+    group.items.forEach(it=>{
+      const tr=document.createElement("tr");
+      const cell=obs[it]||(obs[it]={t:{},note:""});
+      let row=`<td class="itemcol">${esc(it)}</td>`;
+      POST_TIMES.forEach((t,ti)=>{
+        row+=`<td class="tcell${cell.t[ti]?" on":""}" data-it="${esc(it)}" data-ti="${ti}">${cell.t[ti]?"☑":"・"}</td>`;
+      });
+      row+=`<td><input class="noteinput" data-note="${esc(it)}" value="${esc(cell.note||'')}" placeholder="記入"></td>`;
+      tr.innerHTML=row; tbody.appendChild(tr);
+    });
+  });
+  tbl.appendChild(tbody);
+  wrap.appendChild(tbl);
+
+  // イベント
+  wrap.addEventListener("click",e=>{
+    const c=e.target.closest(".tcell"); if(!c) return;
+    const it=c.dataset.it, ti=c.dataset.ti;
+    const cell=obs[it]||(obs[it]={t:{},note:""});
+    cell.t[ti]=cell.t[ti]?0:1;
+    c.classList.toggle("on",!!cell.t[ti]);
+    c.textContent=cell.t[ti]?"☑":"・";
+    save();
+  });
+  wrap.addEventListener("input",e=>{
+    if(e.target.dataset.ti!==undefined && e.target.tagName==="INPUT" && e.target.closest(".timehead")){
+      times[e.target.dataset.ti]=e.target.value; save();
+    }
+    if(e.target.dataset.note!==undefined){
+      const it=e.target.dataset.note; (obs[it]||(obs[it]={t:{},note:""})).note=e.target.value; save();
+    }
+  });
+  return wrap;
+}
+
+function abnBlock(p,pidx){
+  const box=document.createElement("div");
+  p.abn=p.abn||[];
+  p.abn.forEach((a,i)=>{
+    const d=document.createElement("div"); d.className="abn";
+    d.innerHTML=`
+      <div class="row">
+        <input placeholder="時刻" value="${esc(a.time||'')}" data-k="time">
+        <input placeholder="報告先" value="${esc(a.to||'')}" data-k="to">
+      </div>
+      <textarea placeholder="異常内容" data-k="what">${esc(a.what||'')}</textarea>
+      <div style="height:7px"></div>
+      <textarea placeholder="指示内容" data-k="order">${esc(a.order||'')}</textarea>
+      <div style="height:7px"></div>
+      <textarea placeholder="対応・再評価" data-k="resp">${esc(a.resp||'')}</textarea>
+      <div style="text-align:right"><button class="del-x">× 削除</button></div>`;
+    d.querySelectorAll("[data-k]").forEach(inp=>{
+      inp.addEventListener("input",e=>{a[e.target.dataset.k]=e.target.value; save();});
+    });
+    d.querySelector(".del-x").addEventListener("click",()=>{p.abn.splice(i,1); save(); render();});
+    box.appendChild(d);
+  });
+  const add=document.createElement("button"); add.className="btn addrow"; add.textContent="＋ 異常記録を追加";
+  add.addEventListener("click",()=>{p.abn.push({}); save(); render();});
+  box.appendChild(add);
+  return box;
+}
+
+/* ---------- ユーティリティ ---------- */
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+render();
+</script>
+</body>
+</html>
