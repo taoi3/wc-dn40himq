@@ -173,6 +173,56 @@
   }
   .toast.show{opacity:.95;}
   hr.sp{border:none; border-top:1px dashed var(--line); margin:16px 0 4px;}
+  /* ---- 食事ワンタップ ---- */
+  .presets{display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;}
+  .preset-btn{border:1px solid var(--line); background:var(--card); color:var(--sub); border-radius:999px; padding:4px 11px; font-size:12.5px; cursor:pointer; min-height:32px;}
+  .preset-btn:active{background:var(--sel-soft); border-color:var(--sel); color:var(--sel);}
+  .grouplab2{font-size:12px; font-weight:700; color:var(--accent); margin:10px 0 5px;}
+  /* ---- 一覧テーブル ---- */
+  .tablewrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:10px; background:var(--card);}
+  table.ws{border-collapse:collapse; width:max-content; min-width:100%; font-size:12px;}
+  table.ws th, table.ws td{border:1px solid var(--line); padding:4px 5px; vertical-align:top; text-align:left;}
+  table.ws thead th{background:var(--bg); position:sticky; top:0; z-index:2; white-space:nowrap; font-weight:700; color:var(--accent);}
+  table.ws th .sub{display:block; font-weight:400; color:var(--sub); font-size:11px;}
+  table.ws td{min-width:106px;}
+  table.ws td.c-room{min-width:50px;}
+  table.ws td.c-name{min-width:140px;}
+  .ws .tin{width:100%; border:1px solid var(--line); border-radius:6px; padding:4px 5px; font-size:12px; background:var(--bg); color:var(--ink); font-family:inherit; margin-bottom:3px;}
+  .ws textarea.tin{min-height:36px; resize:vertical;}
+  .ws .nm{font-weight:700;}
+  .ws .tin.sub{font-size:11px;}
+  .ws .nmrow,.ws .mealrow{display:flex; gap:4px; align-items:center;}
+  .ws .mlab{font-size:11px; color:var(--sub); width:18px; flex:none; text-align:center;}
+  .ws .grouplab{font-size:11px; color:var(--accent); font-weight:700; margin:2px 0 1px;}
+  .ws .cellchips{display:flex; flex-wrap:wrap; gap:3px; margin-bottom:3px;}
+  .ws .cbtn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:2px 7px; font-size:11.5px; cursor:pointer; min-height:26px;}
+  .ws .cbtn .mk{font-size:11px; opacity:.85; margin-right:2px;}
+  .ws .cbtn.sel{background:var(--sel-soft); border-color:var(--sel); color:var(--sel);}
+  .ws .cbtn.plan{background:var(--plan-soft); border-color:var(--plan); color:#92600a;}
+  .ws .cbtn.done{background:var(--done-soft); border-color:var(--done); color:#15803d; text-decoration:line-through;}
+  html[data-theme="dark"] .ws .cbtn.plan{color:var(--plan);}
+  html[data-theme="dark"] .ws .cbtn.done{color:var(--done);}
+  .ws .delx{border:none; background:none; color:var(--warn); font-size:11px; cursor:pointer; padding:2px 0; margin-top:2px;}
+  .prnhead{display:none;}
+  /* ---- 印刷(A4横) ---- */
+  @media print{
+    @page{ size:A4 landscape; margin:7mm; }
+    header,.notice,.toolbar,.legend,.toast{ display:none !important; }
+    main{ padding:0 !important; }
+    body{ background:#fff; }
+    .prnhead{ display:block !important; margin-bottom:6px; }
+    .tablewrap{ overflow:visible; border:none; border-radius:0; }
+    table.ws{ width:100%; font-size:9px; }
+    table.ws th, table.ws td{ border:0.5px solid #888; padding:2px 3px; }
+    table.ws thead th{ position:static; color:#000; background:#eee; }
+    .ws .tin{ border:none; background:transparent; padding:1px; font-size:9px; margin:0 0 1px; color:#000; }
+    .ws .cbtn{ border:none; background:transparent; padding:0 4px 0 0; min-height:0; font-size:9px; color:#000; border-radius:0; }
+    .ws .cbtn:not(.sel):not(.plan):not(.done){ display:none; }
+    .ws .cbtn.sel,.ws .cbtn.plan{ text-decoration:none; }
+    .ws .cbtn.done{ text-decoration:line-through; }
+    .ws .grouplab,.ws .mlab{ color:#000; }
+    .ws .delx{ display:none; }
+  }
 </style>
 </head>
 <body>
@@ -214,16 +264,19 @@ const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
 const OBS = ["疼痛","発熱","SpO₂","血圧","意識","転倒","誤嚥","せん妄"];
 const HAISETSU = ["自立","車椅子トイレ","オムツ(テープ式)","リハビリパンツ","Ba"];
 const SEIKETSU = ["機械浴","シャワー","清拭","陰洗","なし"];
+const MEAL_PRESETS = ["全量","8割","5割","3割","欠"];
 
 function todoSections(shift){
   return [
     {title:"基本情報", fields:[
-      {id:"name",label:"患者名",type:"text",full:false},
+      {id:"room",label:"部屋",type:"text"},
+      {id:"name",label:"患者名",type:"text"},
       {id:"age",label:"年齢",type:"text"},
       {id:"sex",label:"性別",type:"single",opts:["男","女"]},
       {id:"prio",label:"優先度",type:"single",opts:["高","中","低"],prio:true},
       {id:"dx",label:"病名",type:"text",full:true},
-      {id:"dnar",label:"DNAR",type:"single",opts:["DNAR","フルコース","未定"],full:true},
+      {id:"doctor",label:"主治医",type:"text"},
+      {id:"dnar",label:"DNAR",type:"single",opts:["DNAR","フルコース","未定"]},
       {id:"care",label:"介護度",type:"text"},
       {id:"comment",label:"患者コメント",type:"textarea",full:true},
     ]},
@@ -232,13 +285,16 @@ function todoSections(shift){
     {title:"処置", type:"chips", chip:"tri", opts:["創処置","褥瘡処置","血糖測定","その他"],
      extra:{id:"shochiOther",label:"その他の内容",type:"text"}},
     {title:"食事", type:"fields", fields:[
-      {id:"meal_asa",label:"朝",type:"text"},
-      {id:"meal_hiru",label:"昼",type:"text"},
-      {id:"meal_yu",label:"夕",type:"text"}]},
+      {id:"meal_asa",label:"朝",type:"text",presets:MEAL_PRESETS},
+      {id:"meal_hiru",label:"昼",type:"text",presets:MEAL_PRESETS},
+      {id:"meal_yu",label:"夕",type:"text",presets:MEAL_PRESETS}]},
+    {title:"日常ケア", type:"chipgroups", groups:[
+      {label:"排泄", chip:"multi", opts:HAISETSU, key:"排泄"},
+      {label:"清潔", chip:"multi", opts:SEIKETSU, key:"清潔"}]},
     {title:"観察項目", type:"fields", fields:[
       {id:"obs_free",label:"観察項目（フリー入力）",type:"textarea",full:true}]},
-    {title:"排泄", type:"chips", chip:"multi", opts:HAISETSU},
-    {title:"清潔", type:"chips", chip:"multi", opts:SEIKETSU},
+    {title:"介護処置", type:"fields", fields:[
+      {id:"kaigo_free",label:"介護処置（フリー入力）",type:"textarea",full:true}]},
     {title:"検査", type:"rows", rows:3},
     {title:"評価日・必要度", type:"fields", fields:[
       {id:"need",label:"必要度",type:"text"},
@@ -339,6 +395,7 @@ function render(){
   const main=$("#main");
   main.innerHTML="";
   const tab=state.activeTab;
+  const isTable=(state.view==="table");
 
   const tools=document.createElement("div");
   tools.className="toolbar";
@@ -348,24 +405,21 @@ function render(){
   }else{
     const n = state[tab].length;
     tools.innerHTML=`<button class="btn primary" id="addP">＋ 患者を追加</button>
-      <button class="btn" id="collapse">すべて閉じる</button>
+      <button class="btn" id="viewToggle">${isTable?'🗂 カード表示':'📋 一覧・印刷'}</button>
+      ${isTable?'':'<button class="btn" id="collapse">すべて閉じる</button>'}
       <button class="btn ghost" id="prn">🖨 印刷</button>
       <span style="align-self:center;color:var(--sub);font-size:13px;">${tab==="day"?"日勤":"夜勤"} ${n}名</span>`;
   }
   main.appendChild(tools);
 
-  // 凡例
-  const lg=document.createElement("div");
-  lg.className="legend";
-  lg.innerHTML=`タップで切替 →
-    <span class="chip" style="border:1.5px solid var(--line);">未</span>
-    <span class="chip" style="background:var(--plan-soft);color:#92600a;border:1.5px solid var(--plan);">予定</span>
-    <span class="chip" style="background:var(--done-soft);color:#15803d;border:1.5px solid var(--done);text-decoration:line-through;">済</span>`;
-  main.appendChild(lg);
-
   if(tab==="postop"){
+    addLegend(main);
     state.postop.forEach((p,i)=>main.appendChild(renderPost(p,i)));
+  }else if(isTable){
+    main.appendChild(buildPrnHead(tab));
+    main.appendChild(renderShiftTable(tab));
   }else{
+    addLegend(main);
     state[tab].forEach((p,i)=>main.appendChild(renderTodo(tab,p,i)));
   }
 
@@ -373,12 +427,28 @@ function render(){
   $("#addP")?.addEventListener("click",()=>{
     if(tab==="postop") state.postop.push(blankPost());
     else state[tab].push(blankTodo());
-    save(); render(); window.scrollTo(0,document.body.scrollHeight);
+    save(); render(); if(!isTable) window.scrollTo(0,document.body.scrollHeight);
+  });
+  $("#viewToggle")?.addEventListener("click",()=>{
+    state.view=isTable?"card":"table"; save(); render(); window.scrollTo(0,0);
   });
   $("#collapse")?.addEventListener("click",()=>{
     state[tab].forEach(p=>p.open=false); save(); render();
   });
-  $("#prn")?.addEventListener("click",()=>window.print());
+  $("#prn")?.addEventListener("click",()=>{
+    if(tab!=="postop" && state.view!=="table"){ state.view="table"; save(); render(); }
+    setTimeout(()=>window.print(),150);
+  });
+}
+
+function addLegend(main){
+  const lg=document.createElement("div");
+  lg.className="legend";
+  lg.innerHTML=`タップで切替 →
+    <span class="chip" style="border:1.5px solid var(--line);">未</span>
+    <span class="chip" style="background:var(--plan-soft);color:#92600a;border:1.5px solid var(--plan);">予定</span>
+    <span class="chip" style="background:var(--done-soft);color:#15803d;border:1.5px solid var(--done);text-decoration:line-through;">済</span>`;
+  main.appendChild(lg);
 }
 
 /* ----- ToDoカード(日勤/夜勤) ----- */
@@ -445,6 +515,11 @@ function renderSection(p,sec){
       g.appendChild(renderField(p,{id:sec.title+"_r"+i,label:i+":",type:"text"}));
     }
     wrap.appendChild(g);
+  } else if(sec.type==="chipgroups"){
+    sec.groups.forEach(gp=>{
+      const lab=document.createElement("div"); lab.className="grouplab2"; lab.textContent=gp.label; wrap.appendChild(lab);
+      wrap.appendChild(renderChips(p,{title:gp.key||gp.label, chip:gp.chip, opts:gp.opts}));
+    });
   }
   return wrap;
 }
@@ -476,6 +551,15 @@ function renderField(p,f){
   inp.addEventListener("input",e=>{p.data[f.id]=e.target.value; save();});
   inp.addEventListener("blur",()=>{ if(f.id==="name"||f.id==="age"||f.id==="sex"||f.id==="dx") render(); });
   w.appendChild(inp);
+  if(f.presets){
+    const pre=document.createElement("div"); pre.className="presets";
+    f.presets.forEach(v=>{
+      const b=document.createElement("button"); b.type="button"; b.className="preset-btn"; b.textContent=v;
+      b.addEventListener("click",()=>{ p.data[f.id]=v; inp.value=v; save(); });
+      pre.appendChild(b);
+    });
+    w.appendChild(pre);
+  }
   return w;
 }
 
@@ -506,6 +590,170 @@ function renderChips(p,sec){
 function countDone(p,title){
   const s=p.data[title]; if(!s) return 0;
   return Object.values(s).filter(v=>v===2).length;
+}
+
+/* ----- 一覧/印刷テーブル(日勤/夜勤) ----- */
+function buildPrnHead(tab){
+  const d=document.createElement("div"); d.className="prnhead";
+  d.innerHTML=`<div style="font-size:15px;font-weight:700;">病棟勤務チェックシート</div>
+    <div style="font-size:12px;color:var(--sub);">${esc(state.date||'')}${esc(state.staff)?(' ／ 担当: '+esc(state.staff)):''} ／ ${tab==='day'?'日勤':'夜勤'}</div>`;
+  return d;
+}
+
+function renderShiftTable(tab){
+  const wrap=document.createElement("div"); wrap.className="tablewrap";
+  const tbl=document.createElement("table"); tbl.className="ws";
+  const thead=document.createElement("thead");
+  thead.innerHTML=`<tr>
+    <th>部屋</th>
+    <th>患者氏名<span class="sub">病名 / 主治医 / 歳・性別</span></th>
+    <th>DNAR</th>
+    <th>患者コメント</th>
+    <th>投薬<span class="sub">朝昼夕寝前 / 貼付 / 吸入</span></th>
+    <th>注射</th>
+    <th>処置メモ</th>
+    <th>食事<span class="sub">朝 / 昼 / 夕</span></th>
+    <th>日常ケア<span class="sub">排泄 / 清潔</span></th>
+    <th>観察項目</th>
+    <th>介護処置</th>
+    <th>検査</th>
+    <th>必要度</th>
+    <th>看護計画</th>
+  </tr>`;
+  tbl.appendChild(thead);
+  const tbody=document.createElement("tbody");
+  state[tab].forEach((p,idx)=>tbody.appendChild(renderTableRow(tab,p,idx)));
+  tbl.appendChild(tbody);
+  wrap.appendChild(tbl);
+  return wrap;
+}
+
+function renderTableRow(tab,p,idx){
+  const tr=document.createElement("tr");
+  tr.appendChild(tdRoom(p,tab,idx));
+  tr.appendChild(tdName(p));
+  tr.appendChild(tdSingle(p,"dnar",["DNAR","フルコース","未定"]));
+  tr.appendChild(tdInput(p,"comment",true));
+  tr.appendChild(tdTriChips(p,"投薬",["朝","昼","夕","寝る前","貼付","吸入"]));
+  tr.appendChild(tdRows(p,"注射 (内容・時間)",4));
+  tr.appendChild(tdTriChips(p,"処置",["創処置","褥瘡処置","血糖測定","その他"],"shochiOther"));
+  tr.appendChild(tdMeal(p));
+  tr.appendChild(tdMultiGroups(p,[{label:"排泄",opts:HAISETSU,key:"排泄"},{label:"清潔",opts:SEIKETSU,key:"清潔"}]));
+  tr.appendChild(tdInput(p,"obs_free",true));
+  tr.appendChild(tdInput(p,"kaigo_free",true));
+  tr.appendChild(tdRows(p,"検査",3));
+  tr.appendChild(tdInput(p,"need",false));
+  tr.appendChild(tdInput(p,"plan_d",false));
+  return tr;
+}
+
+function tdRoom(p,tab,idx){
+  const td=document.createElement("td"); td.className="c-room";
+  const inp=document.createElement("input"); inp.type="text"; inp.className="tin"; inp.value=p.data.room||"";
+  inp.addEventListener("input",e=>{p.data.room=e.target.value; save();});
+  td.appendChild(inp);
+  const del=document.createElement("button"); del.className="delx"; del.type="button"; del.textContent="×削除";
+  del.addEventListener("click",()=>{ if(confirm("この患者欄を削除しますか？")){ state[tab].splice(idx,1); save(); render(); } });
+  td.appendChild(del);
+  return td;
+}
+
+function tdName(p){
+  const td=document.createElement("td"); td.className="c-name";
+  const mk=(id,ph,cls)=>{ const i=document.createElement("input"); i.type="text"; i.className="tin "+(cls||""); i.placeholder=ph; i.value=p.data[id]||""; i.addEventListener("input",e=>{p.data[id]=e.target.value; save();}); return i; };
+  td.appendChild(mk("name","氏名","nm"));
+  td.appendChild(mk("dx","病名","sub"));
+  const row=document.createElement("div"); row.className="nmrow";
+  row.appendChild(mk("doctor","主治医","sub"));
+  const ag=mk("age","歳","sub"); ag.style.maxWidth="48px"; row.appendChild(ag);
+  td.appendChild(row);
+  td.appendChild(tdSingleInline(p,"sex",["男","女"]));
+  return td;
+}
+
+function tdSingleInline(p,id,opts){
+  const box=document.createElement("div"); box.className="cellchips";
+  const redraw=()=>box.querySelectorAll("button").forEach((b,i)=>{ b.className="cbtn"+(p.data[id]===opts[i]?" sel":""); });
+  opts.forEach(o=>{ const b=document.createElement("button"); b.type="button"; b.className="cbtn"+(p.data[id]===o?" sel":""); b.textContent=o;
+    b.addEventListener("click",()=>{ p.data[id]=(p.data[id]===o)?"":o; save(); redraw(); }); box.appendChild(b); });
+  return box;
+}
+
+function tdSingle(p,id,opts){
+  const td=document.createElement("td");
+  td.appendChild(tdSingleInline(p,id,opts));
+  return td;
+}
+
+function tdInput(p,id,ta){
+  const td=document.createElement("td");
+  const inp= ta?document.createElement("textarea"):document.createElement("input");
+  if(!ta) inp.type="text";
+  inp.className="tin"; inp.value=p.data[id]||"";
+  inp.addEventListener("input",e=>{p.data[id]=e.target.value; save();});
+  td.appendChild(inp);
+  return td;
+}
+
+function tdTriChips(p,title,opts,extraId){
+  const td=document.createElement("td");
+  const store=p.data[title]||(p.data[title]={});
+  const box=document.createElement("div"); box.className="cellchips";
+  opts.forEach(o=>{
+    const b=document.createElement("button"); b.type="button";
+    const apply=()=>{ const st=store[o]||0; b.className="cbtn"+(st===1?" plan":st===2?" done":""); b.innerHTML=(st===1?'<span class="mk">○</span>':st===2?'<span class="mk">☑</span>':'')+esc(o); };
+    apply();
+    b.addEventListener("click",()=>{ store[o]=((store[o]||0)+1)%3; save(); apply(); });
+    box.appendChild(b);
+  });
+  td.appendChild(box);
+  if(extraId){
+    const inp=document.createElement("input"); inp.type="text"; inp.className="tin"; inp.placeholder="その他"; inp.value=p.data[extraId]||"";
+    inp.addEventListener("input",e=>{p.data[extraId]=e.target.value; save();});
+    td.appendChild(inp);
+  }
+  return td;
+}
+
+function tdMultiGroups(p,groups){
+  const td=document.createElement("td");
+  groups.forEach(gp=>{
+    const store=p.data[gp.key]||(p.data[gp.key]={});
+    const lab=document.createElement("div"); lab.className="grouplab"; lab.textContent=gp.label; td.appendChild(lab);
+    const box=document.createElement("div"); box.className="cellchips";
+    gp.opts.forEach(o=>{
+      const b=document.createElement("button"); b.type="button";
+      const apply=()=>{ b.className="cbtn"+(store[o]?" sel":""); b.innerHTML=(store[o]?'<span class="mk">✓</span>':'')+esc(o); };
+      apply();
+      b.addEventListener("click",()=>{ store[o]=store[o]?0:1; save(); apply(); });
+      box.appendChild(b);
+    });
+    td.appendChild(box);
+  });
+  return td;
+}
+
+function tdMeal(p){
+  const td=document.createElement("td");
+  [["meal_asa","朝"],["meal_hiru","昼"],["meal_yu","夕"]].forEach(pair=>{
+    const row=document.createElement("div"); row.className="mealrow";
+    const l=document.createElement("span"); l.className="mlab"; l.textContent=pair[1];
+    const inp=document.createElement("input"); inp.type="text"; inp.className="tin"; inp.value=p.data[pair[0]]||"";
+    inp.addEventListener("input",e=>{p.data[pair[0]]=e.target.value; save();});
+    row.appendChild(l); row.appendChild(inp); td.appendChild(row);
+  });
+  return td;
+}
+
+function tdRows(p,title,n){
+  const td=document.createElement("td");
+  for(let i=1;i<=n;i++){
+    const id=title+"_r"+i;
+    const inp=document.createElement("input"); inp.type="text"; inp.className="tin"; inp.value=p.data[id]||"";
+    inp.addEventListener("input",e=>{p.data[id]=e.target.value; save();});
+    td.appendChild(inp);
+  }
+  return td;
 }
 
 /* ----- 術後カード ----- */
