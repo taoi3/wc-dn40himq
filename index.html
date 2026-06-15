@@ -231,7 +231,7 @@ function todoSections(shift){
       {id:"care",label:"介護度",type:"text"},
       {id:"comment",label:"患者コメント",type:"textarea",full:true},
     ]},
-    {title:"内服", type:"chips", chip:"tri", opts:["朝","昼","夕","寝る前"]},
+    {title:"投薬", type:"chips", chip:"tri", opts:["朝","昼","夕","寝る前","貼付","吸入"]},
     {title:"注射 (内容・時間)", type:"rows", rows:4},
     {title:"処置", type:"chips", chip:"tri", opts:["創処置","褥瘡処置","その他"],
      extra:{id:"shochiOther",label:"その他の内容",type:"text"}},
@@ -284,6 +284,19 @@ function ensureCounts(){
   if(state.postop.length === 0) state.postop.push(blankPost());
 }
 ensureCounts();
+
+// 旧「内服」データを「投薬」へ引き継ぎ（2026-06 改名）
+(function(){
+  let changed=false;
+  ["day","night"].forEach(t=>{
+    (state[t]||[]).forEach(p=>{
+      if(p && p.data && p.data["内服"] && !p.data["投薬"]){
+        p.data["投薬"]=p.data["内服"]; delete p.data["内服"]; changed=true;
+      }
+    });
+  });
+  if(changed) save();
+})();
 
 function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
 function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)); }catch(e){ return null; } }
@@ -374,8 +387,8 @@ function renderTodo(tab,p,idx){
   const prio=p.data.prio||"";
   card.className="pcard"+(p.open?" open":"")+(prio?" prio-"+prio:"");
 
-  // 進捗(内服+処置の済数)
-  const prog = countDone(p,"内服")+countDone(p,"処置");
+  // 進捗(投薬+処置の済数)
+  const prog = countDone(p,"投薬")+countDone(p,"処置");
 
   const head=document.createElement("div");
   head.className="phead";
